@@ -1,6 +1,32 @@
 import { chromium, Browser, Page } from 'playwright';
 import { Database } from "bun:sqlite";
 
+interface PlaceResult {
+  name: string;
+  url: string;
+}
+
+interface GooglePlace {
+  websiteUri?: string;
+  displayName: {
+    text: string;
+  }
+}
+
+interface GooglePlaceResponse {
+  places: GooglePlace[];
+}
+
+interface RequestOptions {
+  method: string
+  headers: {
+    'X-Goog-Api-Key': string
+    'X-Goog-FieldMask': string
+    'Content-Type': string
+  }
+  body: string
+}
+
 async function extractEmails(url: string): Promise<string[]> {
 let browser: Browser | null = null;
     try {
@@ -30,11 +56,11 @@ let browser: Browser | null = null;
     }
 }
 
-async function searchPlacesQuery(query: string): string[] {
-  const options = {
+async function searchPlacesQuery(query: string): Promise<GooglePlaceResponse> {
+  const options: RequestOptions = {
     method: 'POST',
     headers: {
-      'X-Goog-Api-Key': process.env.GOOGLE_API_KEY,
+      'X-Goog-Api-Key': process.env.GOOGLE_API_KEY as string,
       'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.websiteUri',
       'Content-Type': 'application/json'
     },
@@ -44,9 +70,9 @@ async function searchPlacesQuery(query: string): string[] {
 
   try {
     const response = await fetch('https://places.googleapis.com/v1/places:searchText', options)
-    const json = await response.json()
+    const json: GooglePlaceResponse = await response.json()
     return json;
-  } catch (err) {
+  } catch (err: any) {
     console.error(err.message);
     return err;
   }
@@ -55,10 +81,14 @@ async function searchPlacesQuery(query: string): string[] {
 async function main() {
   const db = new Database("mydb.sqlite", {create: true});
   const googleQuery = prompt('Businesses to search:');
+  if (googleQuery === null) {
+    console.log('Search cancelled');
+    return;
+  }
   console.log('Searching for:', googleQuery);
   const responses = await searchPlacesQuery(googleQuery);
-  const urls = responses.places.map(place => ({
-    url: place.websiteUri, 
+  const urls: PlaceResult[] = responses.places.map((place: GooglePlace) => ({
+    url: place.websiteUri || '', 
     name: place.displayName.text
   })).filter(item => item.url)
 
