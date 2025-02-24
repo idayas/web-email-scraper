@@ -1,4 +1,3 @@
-import { chromium, Browser, Page } from "playwright";
 import { Database } from "bun:sqlite";
 import parse from "csv-simple-parser";
 
@@ -33,46 +32,57 @@ interface Rec {
   State: string;
 }
 
+// New function that uses fetch instead of Playwright
 async function extractEmails(url: string): Promise<string[]> {
-  let browser: Browser | null = null;
   try {
-    browser = await chromium.launch();
-    const page: Page = await browser.newPage();
-    page.setDefaultNavigationTimeout(5000);
+    // Use a timeout promise to limit fetch time
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    try {
-      await page.goto(url);
-    } catch (navigationError: any) {
-      console.error(`Navigation error for ${url}:`, navigationError.message);
+    // Make sure URL has protocol
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = "https://" + url;
+    }
+
+    // Fetch the webpage content
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
+      },
+    }).catch((err) => {
+      console.error(`Fetch error for ${url}:`, err.message || err);
+      return null;
+    });
+
+    // Clear the timeout
+    clearTimeout(timeoutId);
+
+    if (!response || !response.ok) {
+      console.error(
+        `Failed to fetch ${url}: ${response ? response.status : "No response"}`,
+      );
       return [];
     }
-    // Get the entire page content
-    const content: string = await page.content();
 
-    console.log(content);
+    // Get the content as text
+    const content = await response.text();
 
-    // Updated regex to find all email addresses, including those with spaces
-    const emailPattern: RegExp =
+    // Extract emails using regex
+    const emailPattern =
       /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}(?<!\.(png|jpg|jpeg|gif|bmp|webp))\b/g;
-    const emails: string[] = content.match(emailPattern) || [];
+    const emails = content.match(emailPattern) || [];
 
-    // Remove spaces from email addresses and ensure uniqueness
+    // Remove spaces and ensure uniqueness
     const uniqueEmails = new Set(
       emails.map((email) => email.replace(/\s/g, "")),
     );
 
     return Array.from(uniqueEmails);
   } catch (error) {
-    console.error(`Error processing ${url}:`, error);
+    console.error(`Error processing ${url}:`, error.message || error);
     return [];
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (closeError: any) {
-        console.error("Error closing browser:", closeError.message);
-      }
-    }
   }
 }
 
@@ -106,7 +116,7 @@ async function runSearch(googleQuery: string) {
   try {
     db = new Database("mydb.sqlite", { create: true });
 
-    console.log("Searching for:", googleQuery);
+    console.log("\n\nSearching for:", googleQuery);
     const responses = await searchPlacesQuery(googleQuery);
 
     const urls: PlaceResult[] = responses.places
@@ -129,47 +139,65 @@ async function runSearch(googleQuery: string) {
       );`,
       ).run();
     } catch (tableError: any) {
-      console.error("Error creating table:", tableError.message)
+      console.error("Error creating table:", tableError.message);
     }
 
     const query = db.query(
       "INSERT OR IGNORE INTO emails (business_name, business_website, email_address) VALUES ($business_name, $business_website, $email_address)",
     );
 
+    // Process URLs sequentially
     for (const item of urls) {
-      console.log(`Processing website; ${item.url}`);
+      console.log(`Processing website: ${item.url}`);
 
+      // Extract emails with built-in error handling
+      let emails: string[] = [];
       try {
-        const emails = await extractEmails(item.url);
+        emails = await extractEmails(item.url);
         console.log(`Found ${emails.length} emails for ${item.name}`);
-
-        for (const email of emails) {
-          try {
-            query.run({
-              $business_name: item.name,
-              $business_website: item.url,
-              $email_address: email.toLowerCase(),
-            });
-          } catch (insertError: any) {
-            console.error(`Error inserting email ${email}:`, insertError.message)
-          }
-        }
       } catch (processingError: any) {
-        console.error(`Failed to process ${item.url}:`, processingError.message);
+        console.error(
+          `Failed to process ${item.url}:`,
+          processingError.message || processingError,
+        );
+        // Continue to next item
+        continue;
+      }
+
+      // Insert emails into database
+      for (const email of emails) {
+        try {
+          query.run({
+            $business_name: item.name,
+            $business_website: item.url,
+            $email_address: email.toLowerCase(),
+          });
+        } catch (insertError: any) {
+          console.error(
+            `Error inserting email ${email}:`,
+            insertError.message || insertError,
+          );
+        }
       }
     }
   } catch (error: any) {
-    console.error(`Error in runSearch for "${googleQuery}":`, error.message)
+    console.error(
+      `Error in runSearch for "${googleQuery}":`,
+      error.message || error,
+    );
   } finally {
+    // Close database
     if (db) {
       try {
         db.close();
       } catch (closeError: any) {
-        console.error("Error closing database:", closeError.message)
+        console.error(
+          "Error closing database:",
+          closeError.message || closeError,
+        );
       }
     }
   }
-
 }
 
 async function main() {
@@ -202,9 +230,10 @@ async function main() {
       console.error("File could not be found");
       process.exit(1);
     }
+  } else {
+    // Only run the direct search if no file was provided
+    await runSearch(googleQuery);
   }
-
-  await runSearch(googleQuery);
 }
 
 main();
