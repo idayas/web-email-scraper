@@ -9,6 +9,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "csv-simple-parser": "^2.0.2",
     "playwright": "^1.48.0"
   }
 }

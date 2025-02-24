@@ -23,6 +23,9 @@ bun run index.ts
 To then preview the results, run:
 ```bash
 bun run list_emails.ts
+
+# With CSV
+bun run list_emails.ts list.csv
 ```
 
 OR open the mydb.sqlite file in your preferred SQLite database viewer, such as [SQLiteViewer](https://sqliteviewer.app/).

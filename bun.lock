@@ -4,6 +4,7 @@
     "": {
       "name": "business_email_scraper",
       "dependencies": {
+        "csv-simple-parser": "^2.0.2",
         "playwright": "^1.48.0",
       },
       "devDependencies": {
@@ -22,6 +23,10 @@
     "@types/ws": ["@types/ws@8.5.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-bd/YFLW+URhBzMXurx7lWByOu+xzU9+kb3RboOteXYDfW+tr+JZa99OyNmPINEGB/ahzKrEuc8rcv4gnpJmxTw=="],
 
     "bun-types": ["bun-types@1.2.2", "", { "dependencies": { "@types/node": "*", "@types/ws": "~8.5.10" } }, "sha512-RCbMH5elr9gjgDGDhkTTugA21XtJAy/9jkKe/G3WR2q17VPGhcquf9Sir6uay9iW+7P/BV0CAHA1XlHXMAVKHg=="],
+
+    "csv-simple-parser": ["csv-simple-parser@2.0.2", "", { "dependencies": { "detect-eol": "^3.0.1" } }, "sha512-G9KUSB7Bh8mRjZcg340FJM96tJYPPfb+UjR6T+dOcdRLChmwOTP6jB9+rJwmqDoaPHMJW/CXabYbJ1ZEjbkrrg=="],
+
+    "detect-eol": ["detect-eol@3.0.1", "", {}, "sha512-ncnuLiZCKO7Kt+3CpwUIV8QnnwpBsSFxGQBY6Nve18K2aOrTim2xpzDa8YunHkePt39OCfV2qOX+b7xjYSDRWg=="],
 
     "fsevents": ["fsevents@2.3.2", "", { "os": "darwin" }, "sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA=="],
 
