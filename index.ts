@@ -4,6 +4,7 @@ import parse from "csv-simple-parser";
 interface PlaceResult {
   name: string;
   url: string;
+  address: string;
 }
 
 interface GooglePlace {
@@ -11,6 +12,7 @@ interface GooglePlace {
   displayName: {
     text: string;
   };
+  formattedAddress: string;
 }
 
 interface GooglePlaceResponse {
@@ -123,6 +125,7 @@ async function runSearch(googleQuery: string) {
       .map((place: GooglePlace) => ({
         url: place.websiteUri || "",
         name: place.displayName.text,
+        address: place.formattedAddress
       }))
       .filter((item) => item.url);
 
@@ -133,6 +136,7 @@ async function runSearch(googleQuery: string) {
         `CREATE TABLE IF NOT EXISTS emails (
         id INTEGER PRIMARY KEY,
         business_name VARCHAR(255) UNIQUE,
+        business_address VARCHAR(255),
         business_website VARCHAR(255),
         email_address VARCHAR(255),
         email_sent INTEGER DEFAULT 0
@@ -143,7 +147,7 @@ async function runSearch(googleQuery: string) {
     }
 
     const query = db.query(
-      "INSERT OR IGNORE INTO emails (business_name, business_website, email_address) VALUES ($business_name, $business_website, $email_address)",
+      "INSERT OR IGNORE INTO emails (business_name, business_address, business_website, email_address) VALUES ($business_name, $business_address, $business_website, $email_address)",
     );
 
     // Process URLs sequentially
@@ -154,7 +158,7 @@ async function runSearch(googleQuery: string) {
       let emails: string[] = [];
       try {
         emails = await extractEmails(item.url);
-        console.log(`Found ${emails.length} emails for ${item.name}`);
+        console.log(`    Found ${emails.length} emails for ${item.name}`);
       } catch (processingError: any) {
         console.error(
           `Failed to process ${item.url}:`,
@@ -169,6 +173,7 @@ async function runSearch(googleQuery: string) {
         try {
           query.run({
             $business_name: item.name,
+            $business_address: item.address,
             $business_website: item.url,
             $email_address: email.toLowerCase(),
           });
