@@ -1,5 +1,5 @@
 # Business Email Scraper
-A CLI tool that uses Google Maps API to find businesses matching your search query and then scrapes those websites for contact information. Great tool for generating leads.
+A CLI tool that uses Google Maps API to find businesses matching your search query and then scrapes those websites for contact information. Useful for generating leads.
 
 ## Installation
 Requires [Bun](https://bun.sh/) to run.
