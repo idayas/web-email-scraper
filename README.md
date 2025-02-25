@@ -24,8 +24,14 @@ To then preview the results, run:
 ```bash
 bun run list_emails.ts
 
+>> Businesses to search: Restaurants near New York, NY
+>> Searching for: Restaurants near New York, NY
+
 # With CSV
 bun run list_emails.ts list.csv
+
+>> Businesses to search: Restaurants
+>> Searching for: Restaurants in Anchorage, Alaska
 ```
 
 OR open the mydb.sqlite file in your preferred SQLite database viewer, such as [SQLiteViewer](https://sqliteviewer.app/).
